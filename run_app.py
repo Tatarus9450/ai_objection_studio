@@ -14,7 +14,8 @@ APP_FILE = APP_DIR / "app.py"
 REQUIREMENTS_FILE = APP_DIR / "requirements.txt"
 PRIMARY_VENV_DIR = APP_DIR / ".venv"
 LEGACY_VENV_DIR = APP_DIR / "venv"
-CORE_IMPORTS = ("customtkinter", "cv2", "ultralytics", "PIL")
+CORE_IMPORTS = ("flask", "waitress", "cv2", "ultralytics", "PIL")
+LEGACY_PACKAGES = ("customtkinter",)
 
 
 def get_venv_python(venv_dir: Path) -> Path:
@@ -81,6 +82,7 @@ def ensure_dependencies(venv_dir: Path, python_bin: Path) -> None:
 
     print("[setup] Installing/updating dependencies from requirements.txt")
     run_checked([str(python_bin), "-m", "pip", "install", "--upgrade", "pip"])
+    run_checked([str(python_bin), "-m", "pip", "uninstall", "-y", *LEGACY_PACKAGES])
     run_checked([str(python_bin), "-m", "pip", "install", "-r", str(REQUIREMENTS_FILE)])
     req_stamp_file.write_text(wanted_hash, encoding="utf-8")
 
@@ -100,7 +102,10 @@ def main() -> int:
     ensure_dependencies(venv_dir, python_bin)
 
     cmd = [str(python_bin), str(APP_FILE), *sys.argv[1:]]
-    return subprocess.call(cmd, cwd=str(APP_DIR))
+    try:
+        return subprocess.call(cmd, cwd=str(APP_DIR))
+    except KeyboardInterrupt:
+        return 130
 
 
 if __name__ == "__main__":

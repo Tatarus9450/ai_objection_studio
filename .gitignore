@@ -20,11 +20,17 @@ ENV/
 Thumbs.db
 .vscode/
 .idea/
+.env
+.env.*
 
 # Runtime outputs
 captures/
 csv_logs/
+uploads/
 *.log
+*.zip
+core
+core.*
 
 # Local AI model weights (keep out of GitHub repo)
 model/*.pt
