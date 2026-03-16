@@ -1,6 +1,6 @@
-# Vision Deck
+# Object Detection App
 
-Vision Deck คือ web app สำหรับ Object Detection ที่รันในเครื่องตัวเองได้เลย  
+Object Detection App คือ web app สำหรับ Object Detection ที่รันในเครื่องตัวเองได้เลย  
 เปิดผ่าน browser แต่ประมวลผลด้วย Python + YOLO ในเครื่องเดียวกัน
 
 ## ความสามารถหลัก
