@@ -5,6 +5,7 @@ import hashlib
 import os
 import subprocess
 import sys
+import urllib.request
 import venv
 from pathlib import Path
 
@@ -12,10 +13,13 @@ from pathlib import Path
 APP_DIR = Path(__file__).resolve().parent
 APP_FILE = APP_DIR / "app.py"
 REQUIREMENTS_FILE = APP_DIR / "requirements.txt"
+MODEL_DIR = APP_DIR / "model"
 PRIMARY_VENV_DIR = APP_DIR / ".venv"
 LEGACY_VENV_DIR = APP_DIR / "venv"
 CORE_IMPORTS = ("flask", "waitress", "cv2", "ultralytics", "PIL")
 LEGACY_PACKAGES = ("customtkinter",)
+DEFAULT_MODEL_NAME = "yolo26n.pt"
+DEFAULT_MODEL_URL = "https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26n.pt"
 
 
 def get_venv_python(venv_dir: Path) -> Path:
@@ -87,6 +91,22 @@ def ensure_dependencies(venv_dir: Path, python_bin: Path) -> None:
     req_stamp_file.write_text(wanted_hash, encoding="utf-8")
 
 
+def ensure_default_model() -> None:
+    MODEL_DIR.mkdir(parents=True, exist_ok=True)
+    existing_models = list(MODEL_DIR.glob("*.pt")) + list(MODEL_DIR.glob("*.engine"))
+    if existing_models:
+        return
+
+    model_path = MODEL_DIR / DEFAULT_MODEL_NAME
+    if model_path.exists():
+        return
+
+    temp_path = model_path.with_suffix(model_path.suffix + ".part")
+    print(f"[setup] Downloading default model: {DEFAULT_MODEL_URL}")
+    urllib.request.urlretrieve(DEFAULT_MODEL_URL, temp_path)
+    temp_path.replace(model_path)
+
+
 def main() -> int:
     os.chdir(APP_DIR)
 
@@ -100,6 +120,7 @@ def main() -> int:
 
     venv_dir, python_bin = select_or_create_venv()
     ensure_dependencies(venv_dir, python_bin)
+    ensure_default_model()
 
     cmd = [str(python_bin), str(APP_FILE), *sys.argv[1:]]
     try:

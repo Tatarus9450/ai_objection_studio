@@ -16,6 +16,10 @@ from werkzeug.datastructures import FileStorage
 from werkzeug.utils import secure_filename
 
 
+DEFAULT_MODEL_NAME = "yolo26n.pt"
+DEFAULT_MODEL_URL = "https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26n.pt"
+
+
 class DetectionService:
     def __init__(self, base_dir: Path):
         self.base_dir = Path(base_dir)
@@ -44,7 +48,7 @@ class DetectionService:
 
         models = sorted({path.name for path in model_paths})
         if not models:
-            return ["yolo26n.pt"]
+            return [DEFAULT_MODEL_NAME]
         return models
 
     def detect_webcam_frame_data_url(self, image_data: str, settings: dict, session_id: str | None) -> dict:
@@ -210,7 +214,12 @@ class DetectionService:
 
     def _load_model(self, model_name: str):
         model_path = self.model_dir / model_name
-        model_source = str(model_path) if model_path.is_file() else model_name
+        if model_path.is_file():
+            model_source = str(model_path)
+        elif model_name == DEFAULT_MODEL_NAME:
+            model_source = DEFAULT_MODEL_URL
+        else:
+            model_source = model_name
 
         with self.model_lock:
             if self.model is None or self.current_model_source != model_source:

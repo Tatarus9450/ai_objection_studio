@@ -58,6 +58,9 @@ python run_app.py
 
 ถ้าใน `model/` ยังไม่มีไฟล์โมเดล แอปจะ fallback ไปใช้ `yolo26n.pt` เป็นค่าเริ่มต้น
 
+ค่าเริ่มต้นนี้จะดาวน์โหลดจาก:
+`https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26n.pt`
+
 ## หมายเหตุ
 
 - ถ้าใช้ Live Camera ต้องอนุญาตสิทธิ์กล้องใน browser
