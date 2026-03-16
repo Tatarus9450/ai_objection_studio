@@ -44,7 +44,7 @@ class DetectionService:
 
         models = sorted({path.name for path in model_paths})
         if not models:
-            return ["yolov8n.pt"]
+            return ["yolo26n.pt"]
         return models
 
     def detect_webcam_frame_data_url(self, image_data: str, settings: dict, session_id: str | None) -> dict:

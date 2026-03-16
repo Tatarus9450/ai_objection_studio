@@ -56,6 +56,8 @@ python run_app.py
 
 ใส่ไฟล์โมเดลไว้ในโฟลเดอร์ `model/` แล้วกด `Refresh Models` บนหน้าเว็บ
 
+ถ้าใน `model/` ยังไม่มีไฟล์โมเดล แอปจะ fallback ไปใช้ `yolo26n.pt` เป็นค่าเริ่มต้น
+
 ## หมายเหตุ
 
 - ถ้าใช้ Live Camera ต้องอนุญาตสิทธิ์กล้องใน browser
