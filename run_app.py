@@ -3,12 +3,8 @@ from __future__ import annotations
 
 import hashlib
 import os
-import shutil
-import ssl
 import subprocess
 import sys
-import urllib.error
-import urllib.request
 import venv
 from pathlib import Path
 
@@ -21,8 +17,7 @@ PRIMARY_VENV_DIR = APP_DIR / ".venv"
 LEGACY_VENV_DIR = APP_DIR / "venv"
 CORE_IMPORTS = ("flask", "waitress", "cv2", "ultralytics", "PIL")
 LEGACY_PACKAGES = ("customtkinter",)
-DEFAULT_MODEL_NAME = "yolo26n.pt"
-DEFAULT_MODEL_URL = "https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26n.pt"
+DEFAULT_MODEL_NAME = "kanom_v2.pt"
 
 
 def get_venv_python(venv_dir: Path) -> Path:
@@ -96,75 +91,14 @@ def ensure_dependencies(venv_dir: Path, python_bin: Path) -> None:
 
 def ensure_default_model() -> None:
     MODEL_DIR.mkdir(parents=True, exist_ok=True)
-    existing_models = list(MODEL_DIR.glob("*.pt")) + list(MODEL_DIR.glob("*.engine"))
-    if existing_models:
+    default_model_path = MODEL_DIR / DEFAULT_MODEL_NAME
+
+    if default_model_path.exists():
         return
 
-    model_path = MODEL_DIR / DEFAULT_MODEL_NAME
-    if model_path.exists():
-        return
-
-    temp_path = model_path.with_suffix(model_path.suffix + ".part")
-    print(f"[setup] Downloading default model: {DEFAULT_MODEL_URL}")
-    try:
-        _download_default_model(temp_path)
-        temp_path.replace(model_path)
-    except Exception as exc:
-        temp_path.unlink(missing_ok=True)
-        raise RuntimeError(
-            "Failed to download the default model. "
-            "If you are on macOS and Python reports CERTIFICATE_VERIFY_FAILED, "
-            "either run the system certificate installer for your Python build or "
-            f"download {DEFAULT_MODEL_URL} manually into {MODEL_DIR}."
-        ) from exc
-
-
-def _download_default_model(destination: Path) -> None:
-    urllib_error = None
-
-    try:
-        _download_with_urllib(destination)
-        return
-    except Exception as exc:
-        urllib_error = exc
-
-    curl_path = shutil.which("curl")
-    if curl_path:
-        _download_with_curl(curl_path, destination)
-        return
-
-    raise urllib_error
-
-
-def _download_with_urllib(destination: Path) -> None:
-    context = ssl.create_default_context()
-
-    try:
-        import certifi  # type: ignore
-    except ImportError:
-        certifi = None
-
-    if certifi is not None:
-        context.load_verify_locations(cafile=certifi.where())
-
-    with urllib.request.urlopen(DEFAULT_MODEL_URL, context=context) as response:
-        with destination.open("wb") as output_file:
-            shutil.copyfileobj(response, output_file)
-
-
-def _download_with_curl(curl_path: str, destination: Path) -> None:
-    subprocess.check_call(
-        [
-            curl_path,
-            "--fail",
-            "--location",
-            "--silent",
-            "--show-error",
-            "--output",
-            str(destination),
-            DEFAULT_MODEL_URL,
-        ],
-        cwd=str(APP_DIR),
+    raise RuntimeError(
+        f"Required model not found in {MODEL_DIR}. "
+        f"Place {DEFAULT_MODEL_NAME} in the model folder before starting the app."
     )
 
 

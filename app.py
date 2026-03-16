@@ -7,11 +7,12 @@ import sys
 import webbrowser
 from pathlib import Path
 from threading import Timer
+from urllib.parse import quote
 
-from flask import Flask, abort, jsonify, render_template, request, send_from_directory
+from flask import Flask, jsonify, make_response, render_template, request
 from waitress import serve
 
-from detector_service import DetectionService
+from services import LiveDetectionService
 
 
 APP_DIR = Path(__file__).resolve().parent
@@ -21,9 +22,9 @@ DEFAULT_PORT = 8000
 
 def create_app() -> Flask:
     app = Flask(__name__, template_folder="templates", static_folder="static")
-    app.config["MAX_CONTENT_LENGTH"] = 512 * 1024 * 1024
+    app.config["MAX_CONTENT_LENGTH"] = 64 * 1024 * 1024
 
-    service = DetectionService(APP_DIR)
+    service = LiveDetectionService(APP_DIR)
 
     @app.errorhandler(Exception)
     def handle_exception(error):
@@ -35,102 +36,31 @@ def create_app() -> Flask:
     def index():
         return render_template("index.html")
 
-    @app.get("/api/models")
-    def models():
-        available_models = service.get_available_models()
-        return jsonify(
-            {
-                "ok": True,
-                "models": available_models,
-                "default_model": available_models[0],
-            }
-        )
-
     @app.post("/api/detect/frame")
     def detect_frame():
         upload = request.files.get("file")
-        if upload is not None and upload.filename:
-            settings = _parse_settings(request.form.get("settings"))
-            session_id = request.form.get("session_id")
-            result = service.detect_webcam_frame_bytes(upload.read(), settings, session_id)
-            return jsonify({"ok": True, **result})
-
-        payload = request.get_json(force=True)
-        image_data = payload.get("image_data")
-        if not image_data:
-            return jsonify({"ok": False, "error": "Missing image_data"}), 400
-
-        settings = payload.get("settings", {})
-        session_id = payload.get("session_id")
-        result = service.detect_webcam_frame_data_url(image_data, settings, session_id)
-        return jsonify({"ok": True, **result})
-
-    @app.post("/api/detect/image")
-    def detect_image():
-        upload = request.files.get("file")
         if upload is None or not upload.filename:
-            return jsonify({"ok": False, "error": "Image file is required"}), 400
+            return jsonify({"ok": False, "error": "Webcam frame file is required"}), 400
 
         settings = _parse_settings(request.form.get("settings"))
-        log_csv = _as_bool(request.form.get("log_csv"))
-        result = service.detect_image(upload.read(), settings, log_csv=log_csv)
-        return jsonify({"ok": True, **result})
+        result = service.detect_frame_bytes(upload.read(), settings)
+        if request.headers.get("X-Response-Mode") == "jpeg":
+            response = make_response(result["image_bytes"])
+            response.headers["Content-Type"] = "image/jpeg"
+            response.headers["Cache-Control"] = "no-store"
+            response.headers["X-Live-Summary"] = quote(
+                json.dumps(result["summary"], separators=(",", ":"), ensure_ascii=True),
+                safe="",
+            )
+            response.headers["X-Frame-Perf"] = quote(
+                json.dumps(result["perf"], separators=(",", ":"), ensure_ascii=True),
+                safe="",
+            )
+            return response
 
-    @app.post("/api/process/video")
-    def process_video():
-        upload = request.files.get("file")
-        if upload is None or not upload.filename:
-            return jsonify({"ok": False, "error": "Video file is required"}), 400
-
-        settings = _parse_settings(request.form.get("settings"))
-        log_csv = _as_bool(request.form.get("log_csv"))
-        result = service.process_video(upload, settings, log_csv=log_csv)
-        return jsonify({"ok": True, **result})
-
-    @app.post("/api/save-snapshot")
-    def save_snapshot():
-        upload = request.files.get("file")
-        if upload is not None and upload.filename:
-            result = service.save_snapshot_file(upload.read())
-            return jsonify({"ok": True, **result})
-
-        payload = request.get_json(silent=True) or {}
-        image_data = payload.get("image_data")
-        if not image_data:
-            return jsonify({"ok": False, "error": "Snapshot data is required"}), 400
-
-        result = service.save_snapshot_data_url(image_data)
-        return jsonify({"ok": True, **result})
-
-    @app.post("/api/save-recording")
-    def save_recording():
-        upload = request.files.get("file")
-        if upload is None or not upload.filename:
-            return jsonify({"ok": False, "error": "Recording file is required"}), 400
-
-        result = service.save_recording(upload)
-        return jsonify({"ok": True, **result})
-
-    @app.post("/api/session/end")
-    def end_session():
-        payload = request.get_json(force=True)
-        session_id = payload.get("session_id")
-        if not session_id:
-            return jsonify({"ok": False, "error": "session_id is required"}), 400
-
-        result = service.finish_live_csv_session(session_id)
-        return jsonify({"ok": True, **result})
-
-    @app.get("/media/<category>/<path:filename>")
-    def media(category: str, filename: str):
-        directories = {
-            "captures": service.capture_dir,
-            "csv": service.csv_dir,
-        }
-        directory = directories.get(category)
-        if directory is None:
-            abort(404)
-        return send_from_directory(directory, filename, as_attachment=False)
+        payload = dict(result)
+        payload.pop("image_bytes", None)
+        return jsonify({"ok": True, **payload})
 
     return app
 
@@ -142,12 +72,6 @@ def _parse_settings(raw_settings: str | None) -> dict:
         return json.loads(raw_settings)
     except json.JSONDecodeError:
         return {}
-
-
-def _as_bool(value: str | None) -> bool:
-    if value is None:
-        return False
-    return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
 app = create_app()

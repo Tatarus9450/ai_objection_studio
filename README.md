@@ -1,68 +1,152 @@
-# Object Detection App
+# AI ตรวจจับขนม
 
-Object Detection App คือ web app สำหรับ Object Detection ที่รันในเครื่องตัวเองได้เลย  
-เปิดผ่าน browser แต่ประมวลผลด้วย Python + YOLO ในเครื่องเดียวกัน
+เว็บแอปสำหรับตรวจจับขนมจากกล้องแบบสด โดยใช้โมเดล `kanom_v2.pt` ที่รันในเครื่องของผู้ใช้เอง
+
+จุดสำคัญของโปรเจกต์นี้คือ:
+- ใช้งานผ่าน browser
+- รองรับ macOS / Windows / Linux
+- เปิดครั้งแรกแล้วสร้าง virtual environment และติดตั้งไลบรารีให้อัตโนมัติ
+- ล็อกโมเดลไว้ที่ `model/kanom_v2.pt` เท่านั้น
+- ใช้เฉพาะการตรวจจับผ่านกล้องสด ไม่มีโหมดอัปโหลดภาพหรือวิดีโอ
 
 ## ความสามารถหลัก
 
-- Live webcam detection ผ่านหน้าเว็บ
-- อัปโหลดภาพเพื่อตรวจจับและดูภาพ annotated
-- อัปโหลดวิดีโอเพื่อประมวลผลทั้งไฟล์และดาวน์โหลดผลลัพธ์
-- เลือกโมเดลจากโฟลเดอร์ `model/`
-- ปรับ `confidence`, `IoU`, `resolution`, และ `class filter`
-- บันทึก `CSV log`
-- เซฟ `snapshot`
-- อัด `recording` จาก live annotated canvas
+- ตรวจจับขนมจาก webcam แบบ real-time
+- แสดง `Camera Input` และ `Annotated Output` แยกชัดเจนบนหน้าเว็บ
+- ปรับ `Confidence`, `IoU`, `Resolution`, และ `Class Filter` ได้
+- แสดง `Webcam FPS`
+- แสดง `Live Summary` ของวัตถุที่ตรวจพบ
+- มี `Quick Tips` ในหน้าเว็บสำหรับช่วยตั้งกล้องให้ได้ผลลัพธ์ดีขึ้น
+- เปิดใช้งานได้แบบ portable โดยไม่ต้องติดตั้ง dependency ด้วยมือทุกครั้ง
 
-## วิธีรัน
+## สถานะปัจจุบันของระบบ
 
-### macOS / Linux
+- โมเดลที่ใช้งานจริง: `model/kanom_v2.pt`
+- ไม่สามารถเปลี่ยนโมเดลจากหน้าเว็บได้
+- ถ้าไม่พบไฟล์ `kanom_v2.pt` โปรแกรมจะไม่เริ่มทำงาน
+- แอปประมวลผลในเครื่อง ไม่อัปโหลดภาพไป cloud
+
+## ความต้องการของระบบ
+
+- Python `3.10` หรือใหม่กว่า
+- ไฟล์โมเดล `model/kanom_v2.pt`
+- Browser ที่รองรับ `getUserMedia()` เช่น Chrome, Edge, Safari
+
+## วิธีเริ่มใช้งาน
+
+### 1. วางโมเดล
+
+ตรวจสอบให้มีไฟล์นี้อยู่ในโฟลเดอร์ `model/`
+
+```text
+model/kanom_v2.pt
+```
+
+### 2. เปิดแอป
+
+macOS / Linux:
 
 ```bash
 ./run_app.sh
 ```
 
-### Windows
+Windows:
 
 ```bat
 run_app.bat
 ```
 
-### ทุกระบบ
+ทุกระบบ:
 
 ```bash
 python run_app.py
 ```
 
-เมื่อเปิดครั้งแรก launcher จะ:
+## สิ่งที่ launcher ทำให้อัตโนมัติ
 
-1. สร้าง virtual environment ให้อัตโนมัติ
-2. ติดตั้งไลบรารีจาก `requirements.txt`
-3. เปิด web app ให้อัตโนมัติเมื่อเครื่องมี desktop session
+ไฟล์ `run_app.py` จะทำงานดังนี้:
 
-ถ้า browser ไม่เปิดเอง ให้เข้า `http://127.0.0.1:8000` หรือพอร์ตถัดไปที่โปรแกรมแสดงใน terminal
+1. ตรวจสอบ Python version
+2. หา `.venv` หรือ `venv` ที่ใช้งานได้
+3. ถ้ายังไม่มี จะสร้าง virtual environment ใหม่
+4. ติดตั้งหรืออัปเดต dependency จาก `requirements.txt`
+5. ตรวจว่ามี `model/kanom_v2.pt`
+6. เปิด web app ผ่าน `app.py`
 
-## โครงสร้างสำคัญ
+ถ้า browser ไม่เปิดเอง ให้ใช้ URL ที่แสดงใน terminal เช่น `http://127.0.0.1:8000`
 
-- `app.py` : Flask web server
-- `detector_service.py` : logic ตรวจจับและจัดการไฟล์ output
-- `templates/` : HTML
-- `static/` : CSS และ JavaScript
-- `model/` : โมเดล `.pt` หรือ `.engine`
-- `captures/` : snapshot, recording, processed video
-- `csv_logs/` : ไฟล์ CSV
+## วิธีใช้งานบนหน้าเว็บ
 
-## การใส่โมเดล
+1. เปิดแอป
+2. อนุญาตสิทธิ์เข้าถึงกล้องใน browser
+3. ปรับค่า `Confidence`, `IoU`, `Resolution`, หรือ `Class Filter` ตามต้องการ
+4. กด `Start Detection`
+5. ดูภาพจากกล้องใน `Camera Input`
+6. ดูผลกรอบตรวจจับใน `Annotated Output`
+7. ดูจำนวนวัตถุจาก `Live Summary`
 
-ใส่ไฟล์โมเดลไว้ในโฟลเดอร์ `model/` แล้วกด `Refresh Models` บนหน้าเว็บ
+## คำอธิบายตัวควบคุม
 
-ถ้าใน `model/` ยังไม่มีไฟล์โมเดล แอปจะ fallback ไปใช้ `yolo26n.pt` เป็นค่าเริ่มต้น
+- `Confidence`: ค่าความมั่นใจขั้นต่ำของผลตรวจจับ
+- `IoU`: ค่าควบคุมการรวมกรอบซ้ำ
+- `Resolution`: ความละเอียดที่ใช้ใน live detection
+- `Class Filter`: ระบุ class id ที่ต้องการ เช่น `0,1,2`
 
-ค่าเริ่มต้นนี้จะดาวน์โหลดจาก:
-`https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26n.pt`
+## โครงสร้างไฟล์หลัก
+
+- `app.py` : Flask server และ endpoint `/api/detect/frame`
+- `run_app.py` : launcher แบบ portable
+- `run_app.sh` : ตัวเปิดสำหรับ macOS / Linux
+- `run_app.bat` : ตัวเปิดสำหรับ Windows
+- `services/model_runtime.py` : โหลดโมเดลและรัน inference
+- `services/live_detection.py` : decode frame, detect, encode output
+- `templates/index.html` : หน้าเว็บหลัก
+- `static/app.js` : logic ฝั่ง browser
+- `static/styles.css` : layout และสไตล์ของ UI
+- `model/` : โฟลเดอร์เก็บโมเดล
+
+## ปัญหาที่พบบ่อย
+
+### ไม่พบโมเดล
+
+อาการ:
+- โปรแกรมแจ้งว่าไม่พบ `kanom_v2.pt`
+
+วิธีแก้:
+- วางไฟล์ `kanom_v2.pt` ไว้ในโฟลเดอร์ `model/`
+
+### Browser เปิดไม่ขึ้นอัตโนมัติ
+
+อาการ:
+- โปรแกรมรันแล้วแต่ไม่เปิดหน้าเว็บเอง
+
+วิธีแก้:
+- เปิด URL ที่แสดงใน terminal ด้วยตัวเอง
+
+### กล้องไม่ทำงาน
+
+อาการ:
+- กด `Start Detection` แล้วไม่ขึ้นภาพ
+
+วิธีแก้:
+- อนุญาตสิทธิ์กล้องใน browser
+- ปิดแอปอื่นที่กำลังใช้งาน webcam
+- รีเฟรชหน้าเว็บแล้วลองใหม่
+
+### FPS ต่ำ
+
+สิ่งที่ควรรู้:
+- คอขวดหลักมักอยู่ที่การรันโมเดลบน CPU
+- แม้เลือก `640` แล้ว FPS ยังอาจต่ำได้ ขึ้นกับเครื่อง
+
+วิธีปรับปรุง:
+1. ลด `Resolution` เป็น `320`
+2. ปิดโปรแกรมอื่นที่ใช้ CPU/GPU
+3. ใช้เครื่องที่รองรับ `CUDA` หรือ `MPS` ถ้ามี
+4. ใช้แสงที่ดีและจัดวัตถุให้อยู่ชัดในเฟรม
 
 ## หมายเหตุ
 
-- ถ้าใช้ Live Camera ต้องอนุญาตสิทธิ์กล้องใน browser
-- output runtime จะถูกเก็บไว้ใน `captures/` และ `csv_logs/`
-- ไฟล์โมเดลไม่ถูก track ใน Git ตาม `.gitignore`
+- โปรเจกต์นี้ออกแบบมาเป็น `live detection workspace`
+- ไม่มี flow สำหรับ image upload หรือ video upload
+- README นี้อ้างอิงจากโค้ดสถานะปัจจุบันของโปรเจกต์

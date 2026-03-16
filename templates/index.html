@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Object Detection App</title>
+    <title>AI ตรวจจับขนม</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
@@ -11,26 +11,17 @@
     <div class="bg-orb bg-orb-b"></div>
     <div class="page-shell">
         <header class="hero">
-            <div>
+            <div class="hero-copy-block">
                 <p class="eyebrow">KANOMZaZa007</p>
-                <h1>KANOMZaZa007</h1>
+                <h1>AI ตรวจจับขนม</h1>
                 <p class="hero-copy">
-                    ตรวจจับวัตถุผ่านเว็บด้วยภาพ, วิดีโอ, และกล้องสดในหน้าจอเดียว
-                    พร้อมเลือกโมเดล ปรับ threshold บันทึก CSV และ export snapshot หรือ recording ได้ทันที
+                    ตรวจจับขนมผ่านกล้องแบบสดด้วยโมเดลทีAIอัจริยะที่ได้รับการฝึกฝนมาอย่างดีเพื่อความแม่นยำสูงสุดในสภาพแวดล้อมจริง
+                    และคิดเงินได้ด้วยการตรวจจับขนมแต่ละชิ้นพร้อมราคารวมที่ผ่านกล้องของคุณ
                 </p>
-            </div>
-            <div class="hero-metrics">
-                <div class="metric-card">
-                    <span>Model Pool</span>
-                    <strong id="model-count">-</strong>
-                </div>
-                <div class="metric-card">
-                    <span>Modes</span>
-                    <strong>Image / Video / Live</strong>
-                </div>
-                <div class="metric-card">
-                    <span>Output</span>
-                    <strong>Snapshot, CSV, Recording</strong>
+                <div class="hero-strip">
+                    <span>Snack AI</span>
+                    <span>YOLO Runtime</span>
+                    <span>Live Detection Only</span>
                 </div>
             </div>
         </header>
@@ -39,13 +30,14 @@
             <aside class="control-panel panel">
                 <div class="panel-head">
                     <h2>Control Panel</h2>
-                    <button id="refresh-models" class="ghost-button" type="button">Refresh Models</button>
                 </div>
 
-                <label class="field">
+                <div class="field field-static">
                     <span>AI Model</span>
-                    <select id="model-select"></select>
-                </label>
+                    <div class="locked-model">
+                        <strong>kanom_v2.pt</strong>
+                    </div>
+                </div>
 
                 <div class="field-grid">
                     <label class="field">
@@ -78,160 +70,77 @@
                     </label>
                 </div>
 
-                <label class="toggle-line">
-                    <input id="csv-toggle" type="checkbox">
-                    <span>Enable CSV Logging</span>
-                </label>
-
                 <div class="status-ribbon">
                     <span class="status-dot"></span>
-                    <span id="status-text">Ready</span>
+                    <span id="status-text">พร้อมใช้งาน</span>
                 </div>
 
                 <div class="info-stack">
                     <div class="mini-card">
-                        <span>Current Mode</span>
-                        <strong id="current-mode-label">Live Camera</strong>
-                    </div>
-                    <div class="mini-card">
                         <span>Webcam FPS</span>
                         <strong id="webcam-fps">-</strong>
                     </div>
-                    <div class="mini-card">
-                        <span>Last Export</span>
-                        <a id="last-export-link" href="#" target="_blank" rel="noreferrer">ยังไม่มีไฟล์</a>
+
+                    <div class="summary-card summary-card-inline">
+                        <div class="summary-head">
+                            <h3>Live Summary</h3>
+                            <span id="live-summary-total">0 รายการ</span>
+                        </div>
+                        <div id="live-summary" class="summary-body">
+                            <p class="placeholder">เริ่มกล้องเพื่อดูผลการตรวจจับขนมแบบสด</p>
+                        </div>
                     </div>
                 </div>
             </aside>
 
             <section class="workspace panel">
-                <div class="mode-switch" role="tablist" aria-label="Detection Modes">
-                    <button class="mode-button active" data-mode="webcam" type="button">Live Camera</button>
-                    <button class="mode-button" data-mode="image" type="button">Image Probe</button>
-                    <button class="mode-button" data-mode="video" type="button">Video Forge</button>
+                <div class="workspace-head">
+                    <div>
+                        <p class="section-kicker">Live Studio</p>
+                        <h2>Snack Detection Workspace</h2>
+                    </div>
                 </div>
 
-                <section id="mode-webcam" class="mode-panel active">
-                    <div class="split-layout">
-                        <div class="media-stage">
-                            <div class="stage-card">
-                                <div class="stage-head">
-                                    <h3>Camera Input</h3>
-                                    <span>Browser Stream</span>
-                                </div>
-                                <video id="webcam-video" autoplay playsinline muted></video>
+                <section class="live-shell">
+                    <div class="live-top-row">
+                        <div class="stage-card stage-card-large stage-card-compact">
+                            <div class="stage-head">
+                                <h3>Camera Input</h3>
+                                <span>Browser Stream</span>
                             </div>
-                            <div class="stage-card">
-                                <div class="stage-head">
-                                    <h3>Annotated Output</h3>
-                                    <span>Server Detection</span>
-                                </div>
-                                <canvas id="webcam-canvas"></canvas>
-                            </div>
+                            <video id="webcam-video" autoplay playsinline muted></video>
                         </div>
 
                         <div class="side-stack">
-                            <div class="action-cluster">
-                                <button id="start-webcam" class="primary-button" type="button">Start Detection</button>
-                                <button id="stop-webcam" class="danger-button" type="button" disabled>Stop Detection</button>
-                                <button id="snapshot-webcam" class="ghost-button" type="button" disabled>Save Snapshot</button>
-                                <button id="record-webcam" class="ghost-button" type="button" disabled>Start Recording</button>
-                            </div>
-
-                            <div class="summary-card">
-                                <div class="summary-head">
-                                    <h3>Live Summary</h3>
-                                    <span id="live-summary-total">0 objects</span>
+                            <div class="action-card">
+                                <div class="action-head">
+                                    <h3>Live Controls</h3>
+                                    <span>Camera Session</span>
                                 </div>
-                                <div id="live-summary" class="summary-body">
-                                    <p class="placeholder">เริ่มกล้องเพื่อดูผลการตรวจจับแบบสด</p>
+                                <div class="action-cluster">
+                                    <button id="start-webcam" class="primary-button" type="button">Start Detection</button>
+                                    <button id="stop-webcam" class="danger-button" type="button" disabled>Stop Detection</button>
+                                </div>
+
+                                <div class="tips-panel">
+                                    <span class="tips-kicker">Quick Tips</span>
+                                    <div class="tips-list">
+                                        <div class="tip-item">วางขนมให้อยู่กลางเฟรม</div>
+                                        <div class="tip-item">ใช้แสงสว่างให้สม่ำเสมอ</div>
+                                        <div class="tip-item">อย่าให้ซองขนมซ้อนทับกันมากเกินไป</div>
+                                        <div class="tip-item">ถ้า FPS ต่ำ ให้ลด Resolution ลง</div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </section>
 
-                <section id="mode-image" class="mode-panel">
-                    <div class="split-layout">
-                        <div class="media-stage">
-                            <label class="upload-card" for="image-file">
-                                <input id="image-file" type="file" accept="image/*">
-                                <span class="upload-kicker">Image Probe</span>
-                                <strong>ลากไฟล์ภาพมาวาง หรือคลิกเพื่อเลือก</strong>
-                                <em>รองรับ JPG, PNG, BMP</em>
-                            </label>
-
-                            <div class="dual-preview">
-                                <div class="stage-card">
-                                    <div class="stage-head">
-                                        <h3>Original</h3>
-                                        <span>Source Frame</span>
-                                    </div>
-                                    <img id="image-preview" alt="Selected image preview">
-                                </div>
-                                <div class="stage-card">
-                                    <div class="stage-head">
-                                        <h3>Detected</h3>
-                                        <span>Annotated Image</span>
-                                    </div>
-                                    <img id="image-result" alt="Detection result preview">
-                                </div>
-                            </div>
+                    <div class="stage-card stage-card-large stage-card-secondary stage-card-output">
+                        <div class="stage-head">
+                            <h3>Annotated Output</h3>
+                            <span>YOLO Detection Overlay</span>
                         </div>
-
-                        <div class="side-stack">
-                            <div class="action-cluster">
-                                <button id="run-image" class="primary-button" type="button">Analyze Image</button>
-                                <button id="save-image-snapshot" class="ghost-button" type="button" disabled>Save Annotated Snapshot</button>
-                            </div>
-
-                            <div class="summary-card">
-                                <div class="summary-head">
-                                    <h3>Image Summary</h3>
-                                    <span id="image-summary-total">0 objects</span>
-                                </div>
-                                <div id="image-summary" class="summary-body">
-                                    <p class="placeholder">อัปโหลดภาพแล้วกด Analyze Image</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <section id="mode-video" class="mode-panel">
-                    <div class="split-layout">
-                        <div class="media-stage">
-                            <label class="upload-card" for="video-file">
-                                <input id="video-file" type="file" accept="video/*">
-                                <span class="upload-kicker">Video Forge</span>
-                                <strong>เลือกวิดีโอเพื่อประมวลผลทั้งไฟล์</strong>
-                                <em>รองรับ MP4, AVI, MOV, MKV</em>
-                            </label>
-
-                            <div class="stage-card">
-                                <div class="stage-head">
-                                    <h3>Processed Video</h3>
-                                    <span>Rendered Output</span>
-                                </div>
-                                <video id="video-result" controls></video>
-                            </div>
-                        </div>
-
-                        <div class="side-stack">
-                            <div class="action-cluster">
-                                <button id="run-video" class="primary-button" type="button">Process Video</button>
-                            </div>
-
-                            <div class="summary-card">
-                                <div class="summary-head">
-                                    <h3>Video Summary</h3>
-                                    <span id="video-summary-total">Waiting</span>
-                                </div>
-                                <div id="video-summary" class="summary-body">
-                                    <p class="placeholder">อัปโหลดวิดีโอเพื่อสร้างผลลัพธ์แบบ annotated</p>
-                                </div>
-                            </div>
-                        </div>
+                        <canvas id="webcam-canvas"></canvas>
                     </div>
                 </section>
             </section>

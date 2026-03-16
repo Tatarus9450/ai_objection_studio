@@ -3,4 +3,3 @@ waitress
 opencv-python
 ultralytics
 Pillow
-certifi

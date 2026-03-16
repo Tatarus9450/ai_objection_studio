@@ -26,13 +26,7 @@ Thumbs.db
 # Runtime outputs
 captures/
 csv_logs/
-uploads/
 *.log
 *.zip
 core
 core.*
-
-# Local AI model weights (keep out of GitHub repo)
-model/*.pt
-model/*.engine
-model/*.onnx
