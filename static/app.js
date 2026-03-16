@@ -10,6 +10,14 @@ const state = {
     },
 };
 
+const PRICE_TABLE = {
+    choco_pie: 5,
+    euro_cake: 5,
+    frit_c: 5,
+    jolly_cola: 12,
+    yumyum: 4,
+};
+
 const refs = {
     confInput: document.getElementById("conf-input"),
     confValue: document.getElementById("conf-value"),
@@ -26,6 +34,9 @@ const refs = {
     stopWebcam: document.getElementById("stop-webcam"),
     liveSummary: document.getElementById("live-summary"),
     liveSummaryTotal: document.getElementById("live-summary-total"),
+    pricingSummary: document.getElementById("pricing-summary"),
+    pricingTotalItems: document.getElementById("pricing-total-items"),
+    pricingTotalAmount: document.getElementById("pricing-total-amount"),
 };
 
 function getSettings() {
@@ -84,6 +95,7 @@ function renderSummary(summary) {
         refs.liveSummary.innerHTML = '<p class="placeholder">ยังไม่มีผลสรุปจากการตรวจจับ</p>';
         refs.liveSummaryTotal.textContent = "-";
         state.webcam.lastSummaryKey = "";
+        renderPricingSummary(null);
         return;
     }
 
@@ -99,6 +111,45 @@ function renderSummary(summary) {
         .join("");
 
     refs.liveSummary.innerHTML = classLines || `<p class="placeholder">${summary.detail_text}</p>`;
+    renderPricingSummary(summary);
+}
+
+function renderPricingSummary(summary) {
+    if (!summary || !Array.isArray(summary.by_class) || summary.by_class.length === 0) {
+        refs.pricingSummary.innerHTML = '<p class="placeholder">รอผลตรวจจับเพื่อคำนวณจำนวนสินค้าและยอดรวม</p>';
+        refs.pricingTotalItems.textContent = "0 ชิ้น";
+        refs.pricingTotalAmount.textContent = "0 บาท";
+        return;
+    }
+
+    const pricedItems = summary.by_class
+        .map((item) => {
+            const unitPrice = PRICE_TABLE[item.name] ?? 0;
+            return {
+                ...item,
+                unitPrice,
+                subtotal: unitPrice * item.count,
+            };
+        })
+        .filter((item) => item.count > 0);
+
+    const totalItems = Number.isFinite(summary.total_objects)
+        ? summary.total_objects
+        : summary.by_class.reduce((sum, item) => sum + item.count, 0);
+    const totalAmount = pricedItems.reduce((sum, item) => sum + item.subtotal, 0);
+
+    const lines = pricedItems
+        .map((item) => `
+            <div class="pricing-line">
+                <span>${item.name} × ${item.count}</span>
+                <strong>${item.subtotal} บาท</strong>
+            </div>
+        `)
+        .join("");
+
+    refs.pricingSummary.innerHTML = lines || '<p class="placeholder">ยังไม่มีสินค้าที่อยู่ในตารางราคา</p>';
+    refs.pricingTotalItems.textContent = `${totalItems} ชิ้น`;
+    refs.pricingTotalAmount.textContent = `${totalAmount} บาท`;
 }
 
 async function drawBlobToCanvas(blob, canvas) {
