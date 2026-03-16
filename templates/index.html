@@ -13,7 +13,7 @@
         <header class="hero">
             <div class="hero-copy-block">
                 <p class="eyebrow">KANOMZaZa007</p>
-                <h1>AI ตรวจจับขนม</h1>
+                <h1>AI ตรวจจับขนม และ คิดเงิน</h1>
                 <p class="hero-copy">
                     ตรวจจับขนมผ่านกล้องแบบสดด้วยโมเดลทีAIอัจริยะที่ได้รับการฝึกฝนมาอย่างดีเพื่อความแม่นยำสูงสุดในสภาพแวดล้อมจริง
                     และคิดเงินได้ด้วยการตรวจจับขนมแต่ละชิ้นพร้อมราคารวมที่ผ่านกล้องของคุณ
@@ -22,6 +22,21 @@
                     <span>Snack AI</span>
                     <span>YOLO Runtime</span>
                     <span>Live Detection Only</span>
+                </div>
+            </div>
+
+            <div class="hero-metrics">
+                <div class="metric-card">
+                    <span>AI Model</span>
+                    <strong>kanom_v2.pt</strong>
+                </div>
+                <div class="metric-card">
+                    <span>Runtime</span>
+                    <strong>Live Camera Detection</strong>
+                </div>
+                <div class="metric-card">
+                    <span>Focus</span>
+                    <strong>Summary and FPS</strong>
                 </div>
             </div>
         </header>
@@ -80,16 +95,6 @@
                         <span>Webcam FPS</span>
                         <strong id="webcam-fps">-</strong>
                     </div>
-
-                    <div class="summary-card summary-card-inline">
-                        <div class="summary-head">
-                            <h3>Live Summary</h3>
-                            <span id="live-summary-total">0 รายการ</span>
-                        </div>
-                        <div id="live-summary" class="summary-body">
-                            <p class="placeholder">เริ่มกล้องเพื่อดูผลการตรวจจับขนมแบบสด</p>
-                        </div>
-                    </div>
                 </div>
             </aside>
 
@@ -99,48 +104,51 @@
                         <p class="section-kicker">Live Studio</p>
                         <h2>Snack Detection Workspace</h2>
                     </div>
+                    <div class="workspace-note">
+                        <span>เหลือเฉพาะส่วนควบคุมและผลสรุปที่ใช้กับกล้องสดจริง</span>
+                    </div>
                 </div>
 
                 <section class="live-shell">
-                    <div class="live-top-row">
-                        <div class="stage-card stage-card-large stage-card-compact">
+                    <div class="media-stage media-stage-vertical">
+                        <div class="stage-card stage-card-large">
+                            <div class="stage-head">
+                                <h3>Annotated Output</h3>
+                                <span>YOLO Detection Overlay</span>
+                            </div>
+                            <canvas id="webcam-canvas"></canvas>
+                        </div>
+
+                        <div class="stage-card stage-card-large stage-card-secondary">
                             <div class="stage-head">
                                 <h3>Camera Input</h3>
                                 <span>Browser Stream</span>
                             </div>
                             <video id="webcam-video" autoplay playsinline muted></video>
                         </div>
-
-                        <div class="side-stack">
-                            <div class="action-card">
-                                <div class="action-head">
-                                    <h3>Live Controls</h3>
-                                    <span>Camera Session</span>
-                                </div>
-                                <div class="action-cluster">
-                                    <button id="start-webcam" class="primary-button" type="button">Start Detection</button>
-                                    <button id="stop-webcam" class="danger-button" type="button" disabled>Stop Detection</button>
-                                </div>
-
-                                <div class="tips-panel">
-                                    <span class="tips-kicker">Quick Tips</span>
-                                    <div class="tips-list">
-                                        <div class="tip-item">วางขนมให้อยู่กลางเฟรม</div>
-                                        <div class="tip-item">ใช้แสงสว่างให้สม่ำเสมอ</div>
-                                        <div class="tip-item">อย่าให้ซองขนมซ้อนทับกันมากเกินไป</div>
-                                        <div class="tip-item">ถ้า FPS ต่ำ ให้ลด Resolution ลง</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
                     </div>
 
-                    <div class="stage-card stage-card-large stage-card-secondary stage-card-output">
-                        <div class="stage-head">
-                            <h3>Annotated Output</h3>
-                            <span>YOLO Detection Overlay</span>
+                    <div class="side-stack">
+                        <div class="action-card">
+                            <div class="action-head">
+                                <h3>Live Controls</h3>
+                                <span>Camera Session</span>
+                            </div>
+                            <div class="action-cluster">
+                                <button id="start-webcam" class="primary-button" type="button">Start Detection</button>
+                                <button id="stop-webcam" class="danger-button" type="button" disabled>Stop Detection</button>
+                            </div>
                         </div>
-                        <canvas id="webcam-canvas"></canvas>
+
+                        <div class="summary-card">
+                            <div class="summary-head">
+                                <h3>Live Summary</h3>
+                                <span id="live-summary-total">0 รายการ</span>
+                            </div>
+                            <div id="live-summary" class="summary-body">
+                                <p class="placeholder">เริ่มกล้องเพื่อดูผลการตรวจจับขนมแบบสด</p>
+                            </div>
+                        </div>
                     </div>
                 </section>
             </section>
