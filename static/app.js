@@ -241,8 +241,10 @@ function drawDataUrlToCanvas(dataUrl, canvas) {
     return new Promise((resolve, reject) => {
         const image = new Image();
         image.onload = () => {
-            canvas.width = image.width;
-            canvas.height = image.height;
+            if (canvas.width !== image.width || canvas.height !== image.height) {
+                canvas.width = image.width;
+                canvas.height = image.height;
+            }
             const context = canvas.getContext("2d");
             context.clearRect(0, 0, canvas.width, canvas.height);
             context.drawImage(image, 0, 0, image.width, image.height);
@@ -260,7 +262,7 @@ async function startWebcamDetection() {
 
     setStatus("Requesting camera access...");
     const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: { ideal: 1280 }, height: { ideal: 720 } },
+        video: getPreferredCameraConstraints(),
         audio: false,
     });
 
@@ -325,7 +327,49 @@ function scheduleWebcamLoop() {
     if (!state.webcam.active) {
         return;
     }
-    state.webcam.loopHandle = window.setTimeout(runWebcamFrame, 120);
+    state.webcam.loopHandle = window.setTimeout(runWebcamFrame, 0);
+}
+
+function getLiveCaptureSize(videoWidth, videoHeight) {
+    const selectedResolution = refs.resolutionSelect.value;
+    if (selectedResolution === "Native") {
+        return { width: videoWidth, height: videoHeight };
+    }
+
+    const maxEdge = Number(selectedResolution);
+    if (!Number.isFinite(maxEdge) || maxEdge <= 0) {
+        return { width: videoWidth, height: videoHeight };
+    }
+
+    const scale = Math.min(1, maxEdge / Math.max(videoWidth, videoHeight));
+    return {
+        width: Math.max(2, Math.round(videoWidth * scale)),
+        height: Math.max(2, Math.round(videoHeight * scale)),
+    };
+}
+
+function canvasToJpegBlob(canvas, quality) {
+    return new Promise((resolve, reject) => {
+        canvas.toBlob((blob) => {
+            if (!blob) {
+                reject(new Error("Could not encode webcam frame."));
+                return;
+            }
+            resolve(blob);
+        }, "image/jpeg", quality);
+    });
+}
+
+function getPreferredCameraConstraints() {
+    const selectedResolution = refs.resolutionSelect.value;
+    const preferredEdge = selectedResolution === "Native"
+        ? 1280
+        : Math.max(320, Number(selectedResolution) || 640);
+
+    return {
+        width: { ideal: preferredEdge },
+        height: { ideal: Math.round(preferredEdge * 9 / 16) },
+    };
 }
 
 async function runWebcamFrame() {
@@ -335,21 +379,24 @@ async function runWebcamFrame() {
     }
 
     const scratch = refs.scratchCanvas;
-    scratch.width = refs.webcamVideo.videoWidth;
-    scratch.height = refs.webcamVideo.videoHeight;
+    const { width, height } = getLiveCaptureSize(refs.webcamVideo.videoWidth, refs.webcamVideo.videoHeight);
+    scratch.width = width;
+    scratch.height = height;
     const scratchContext = scratch.getContext("2d");
     scratchContext.drawImage(refs.webcamVideo, 0, 0, scratch.width, scratch.height);
-    const imageData = scratch.toDataURL("image/jpeg", 0.84);
+    const frameBlob = await canvasToJpegBlob(scratch, 0.72);
 
     try {
+        const formData = new FormData();
+        formData.append("file", frameBlob, "frame.jpg");
+        formData.append("settings", JSON.stringify(getSettings()));
+        if (state.webcam.sessionId) {
+            formData.append("session_id", state.webcam.sessionId);
+        }
+
         const payload = await fetchJson("/api/detect/frame", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                image_data: imageData,
-                session_id: state.webcam.sessionId,
-                settings: getSettings(),
-            }),
+            body: formData,
         });
 
         state.webcam.sessionId = payload.session_id || state.webcam.sessionId;

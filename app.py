@@ -48,6 +48,13 @@ def create_app() -> Flask:
 
     @app.post("/api/detect/frame")
     def detect_frame():
+        upload = request.files.get("file")
+        if upload is not None and upload.filename:
+            settings = _parse_settings(request.form.get("settings"))
+            session_id = request.form.get("session_id")
+            result = service.detect_webcam_frame_bytes(upload.read(), settings, session_id)
+            return jsonify({"ok": True, **result})
+
         payload = request.get_json(force=True)
         image_data = payload.get("image_data")
         if not image_data:
@@ -55,7 +62,7 @@ def create_app() -> Flask:
 
         settings = payload.get("settings", {})
         session_id = payload.get("session_id")
-        result = service.detect_webcam_frame(image_data, settings, session_id)
+        result = service.detect_webcam_frame_data_url(image_data, settings, session_id)
         return jsonify({"ok": True, **result})
 
     @app.post("/api/detect/image")

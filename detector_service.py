@@ -10,6 +10,7 @@ from pathlib import Path
 
 import cv2
 import numpy as np
+import torch
 from ultralytics import YOLO
 from werkzeug.datastructures import FileStorage
 from werkzeug.utils import secure_filename
@@ -30,6 +31,8 @@ class DetectionService:
         self.current_model_source = ""
         self.model_lock = threading.Lock()
         self.inference_lock = threading.Lock()
+        self.device = self._detect_device()
+        self.use_half = self.device.startswith("cuda")
 
         self.live_csv_sessions: dict[str, dict] = {}
         self.live_csv_lock = threading.RLock()
@@ -44,8 +47,15 @@ class DetectionService:
             return ["yolov8n.pt"]
         return models
 
-    def detect_webcam_frame(self, image_data: str, settings: dict, session_id: str | None) -> dict:
+    def detect_webcam_frame_data_url(self, image_data: str, settings: dict, session_id: str | None) -> dict:
         frame = self._decode_data_url_to_bgr(image_data)
+        return self._detect_webcam_frame_bgr(frame, settings, session_id)
+
+    def detect_webcam_frame_bytes(self, file_bytes: bytes, settings: dict, session_id: str | None) -> dict:
+        frame = self._decode_bytes_to_bgr(file_bytes)
+        return self._detect_webcam_frame_bgr(frame, settings, session_id)
+
+    def _detect_webcam_frame_bgr(self, frame: np.ndarray, settings: dict, session_id: str | None) -> dict:
         result = self._run_detection(frame, settings)
 
         csv_url = None
@@ -54,7 +64,7 @@ class DetectionService:
             session_id, csv_url = self._append_live_csv_row(session_id, result["summary"])
 
         return {
-            "image_data": self._bgr_to_data_url(result["annotated_frame"]),
+            "image_data": self._bgr_to_data_url(result["annotated_frame"], quality=76),
             "summary": result["summary"],
             "session_id": session_id,
             "csv_url": csv_url,
@@ -69,7 +79,7 @@ class DetectionService:
             csv_url = self._write_single_csv("image", result["summary"])
 
         return {
-            "image_data": self._bgr_to_data_url(result["annotated_frame"]),
+            "image_data": self._bgr_to_data_url(result["annotated_frame"], quality=86),
             "summary": result["summary"],
             "csv_url": csv_url,
         }
@@ -188,7 +198,7 @@ class DetectionService:
         model = self._load_model(model_name)
         inference_kwargs = self._build_inference_kwargs(settings)
 
-        with self.inference_lock:
+        with self.inference_lock, torch.inference_mode():
             results = model(frame, **inference_kwargs)
 
         annotated_frame = results[0].plot()
@@ -217,11 +227,15 @@ class DetectionService:
         kwargs = {
             "conf": confidence,
             "iou": iou,
+            "device": self.device,
             "verbose": False,
         }
 
         if class_filter:
             kwargs["classes"] = class_filter
+
+        if self.use_half:
+            kwargs["half"] = True
 
         if resolution != "Native":
             try:
@@ -348,8 +362,8 @@ class DetectionService:
         file_bytes = base64.b64decode(encoded)
         return self._decode_bytes_to_bgr(file_bytes)
 
-    def _bgr_to_data_url(self, frame: np.ndarray) -> str:
-        success, buffer = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 88])
+    def _bgr_to_data_url(self, frame: np.ndarray, quality: int = 88) -> str:
+        success, buffer = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, quality])
         if not success:
             raise ValueError("Failed to encode output frame.")
         encoded = base64.b64encode(buffer.tobytes()).decode("utf-8")
@@ -394,3 +408,10 @@ class DetectionService:
         if value is None:
             return False
         return str(value).strip().lower() in {"1", "true", "yes", "on"}
+
+    def _detect_device(self) -> str:
+        if torch.cuda.is_available():
+            return "cuda:0"
+        if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+            return "mps"
+        return "cpu"
